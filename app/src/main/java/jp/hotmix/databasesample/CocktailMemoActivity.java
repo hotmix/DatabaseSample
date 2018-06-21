@@ -1,5 +1,8 @@
 package jp.hotmix.databasesample;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -31,6 +34,29 @@ public class CocktailMemoActivity extends AppCompatActivity {
 
     public void onSaveButtonClick(View view){
         EditText etNote = findViewById(R.id.etNote);
+
+        String note = etNote.getText().toString();
+
+        DatabaseHelper helper = new DatabaseHelper(CocktailMemoActivity.this);
+        SQLiteDatabase db = helper.getWritableDatabase();
+
+        try {
+            String sqlDelete = "DELETE FROM cocktailmemo WHERE _id = ?";
+            SQLiteStatement stmt = db.compileStatement(sqlDelete);
+            stmt.bindLong(1, _cocktailId);
+            stmt.executeUpdateDelete();
+
+            String sqlInsert = "INSERT INTO cocktailmemo (_id, name, note) VALUES (?, ?, ?)";
+            stmt = db.compileStatement(sqlInsert);
+            stmt.bindLong(1, _cocktailId);
+            stmt.bindString(2, _cocktailName);
+            stmt.bindString(3, note);
+
+            stmt.executeInsert();
+        } finally {
+            db.close();
+        }
+
         _tvCocktailName.setText(getString(R.string.tv_name));
         etNote.setText("");
         _btnSave.setEnabled(false);
@@ -44,6 +70,25 @@ public class CocktailMemoActivity extends AppCompatActivity {
             _cocktailName = (String) parent.getItemAtPosition(position);
             _tvCocktailName.setText(_cocktailName);
             _btnSave.setEnabled(true);
+
+            DatabaseHelper helper = new DatabaseHelper(CocktailMemoActivity.this);
+            SQLiteDatabase db = helper.getWritableDatabase();
+
+            try {
+                String sql = "SELECT * FROM cocktailmemo WHERE _id = " + _cocktailId;
+                Cursor cursor = db.rawQuery(sql, null);
+                String note = "";
+                while (cursor.moveToNext()) {
+                    int idxNote = cursor.getColumnIndex("note");
+                    note = cursor.getString(idxNote);
+                }
+
+                EditText etNote = findViewById(R.id.etNote);
+                etNote.setText(note);
+
+            } finally {
+                db.close();
+            }
         }
     }
 }
